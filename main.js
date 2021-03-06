@@ -47,7 +47,7 @@ function readEta() {
 				//getMenu();
 				adapter.log.debug("**ETA connected and found data");
    			}else{
-   				adapter.log.error("** ETA connection issue: "+this.status+":"+);
+   				adapter.log.error("** ETA connection issue: "+this.status);
    			}
 	};
 	xhttp.open("GET", adapter.config.etaService+"vars/etamon", true);
