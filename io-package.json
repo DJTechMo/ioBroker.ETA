@@ -1,6 +1,6 @@
 {
     "common": {
-        "name": "ETA",
+        "name": "etaControl",
         "version": "0.0.3",
         "news": {
             "0.0.3": {

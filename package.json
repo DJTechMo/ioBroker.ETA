@@ -1,5 +1,5 @@
 {
-  "name": "iobroker.ETA",
+  "name": "iobroker.etaControl",
   "version": "0.0.3",
   "description": "ETA Heating Adapter",
   "author": {
