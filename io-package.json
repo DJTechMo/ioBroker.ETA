@@ -1,6 +1,6 @@
 {
     "common": {
-        "name": "etaControl",
+        "name": "etacontrol",
         "version": "0.0.3",
         "news": {
             "0.0.3": {
@@ -8,10 +8,10 @@
                 "de": "Initiale Version"
             }
         },
-		"title": "ETA Monitor",
+		"title": "ETA Control",
         "titleLang": {
-            "en": "ETA Monitor",
-            "de": "ETA Monitor"
+            "en": "ETA Control",
+            "de": "ETA Control"
         },
         "desc": {
             "en": "Monitor all sensors of your ETA heating",
