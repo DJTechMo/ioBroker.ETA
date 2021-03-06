@@ -4,7 +4,7 @@
 
 const request   = require('request-promise');
 const utils     = require(__dirname + '/lib/utils');
-const adapter   = new utils.Adapter('etamon');
+const adapter   = new utils.Adapter('etacontrol');
 const xpath     = require('xpath');
 const xmldom    = require('xmldom').DOMParser;
 const select = xpath.useNamespaces({"eta": "http://www.eta.co.at/rest/v1"});
