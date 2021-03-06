@@ -1,18 +1,20 @@
 {
-  "name": "iobroker.etamon",
+  "name": "iobroker.ETA",
   "version": "0.0.3",
-  "description": "etamon",
+  "description": "ETA Heating Adapter",
   "author": {
-    "name": "Frank Hirsch",
-    "email": "frank.hirsch@mac.com"
+    "name": "Mario Anstoots",
+    "email": "mario1991@web.de"
   },
   "contributors": [
     {
+		"name": "Mario Anstoots",
+	    "email": "mario1991@web.de",
       "name": "Frank Hirsch",
       "email": "frank.hirsch@mac.com"
     }
   ],
-  "homepage": "https://github.com/frankhirsch/ioBroker.etamon",
+  "homepage": "https://github.com/DJTechMo/ioBroker.ETA",
   "license": "MIT",
   "keywords": [
     "ioBroker",
@@ -22,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/frankhirsch/ioBroker.etamon"
+    "url": "https://github.com/DJTechMo/ioBroker.ETA"
   },
   "dependencies": {
     "request": "^2.88.0",
@@ -40,7 +42,7 @@
     "test": "node node_modules/mocha/bin/mocha --exit"
   },
   "bugs": {
-    "url": "https://github.com/frankhirsch/ioBroker.etamon/issues"
+    "url": "https://github.com/DJTechMo/ioBroker.ETA/issues"
   },
   "readmeFilename": "README.md"
 }
