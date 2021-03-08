@@ -6,11 +6,12 @@ const request   = require('request-promise');
 const utils     = require(__dirname + '/lib/utils');
 const adapter   = new utils.Adapter('etacontrol');
 const xpath     = require('xpath');
-const xmldom    = require('xmldom').DOMParser;
+const DOMParser    = require('xmldom').DOMParser;
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const select = xpath.useNamespaces({"eta": "http://www.eta.co.at/rest/v1"});
 var   menu;
 var   variables;
+var   menuNodes;
 var   addedChannels = 0;
 var   addedObjects = 0;
 var   addedVariables = 0;
@@ -22,20 +23,13 @@ var   channels = [];
 
 
 adapter.on('ready', function () {
-	// Timeout for adapter if ETA takes too long to respond (overall process)
-	setTimeout( function() {
-		adapter.log.error("ETA service monitoring timeout [" + adapter.config.etaTimeout + "]!");
-        adapter.stop();
-    }, adapter.config.etaTimeout);
-    // Optional delete any "etamon" variable if existing
-	adapter.log.debug("** Debug Mode: " + adapter.config.etaDebug);
-	if(adapter.config.etaDebug) {
-		// After deletion the read will be started
-    	deleteEta();
-    } else {
+	
+
     	// Start reading the data from ETA unit
+	adapter.log.debug("**ETA read called");
     	readEta();
-    }
+		
+	adapter.stop();
 });
 
 function readEta() {
@@ -47,144 +41,122 @@ function readEta() {
     		if (this.readyState == 4 && this.status == 200) {
 				//getMenu();
 				adapter.log.debug("**ETA connected and found data");
-   			}else{
-   				adapter.log.error("** ETA connection issue: "+this.status);
+				getMenu();
    			}
 	};
 	xhttp.open("GET", adapter.config.etaService+"vars/etamon", true);
 	xhttp.send();
-	
-	
-	
-	/*
-	request(
-		{
-			url: adapter.config.etaService+"vars/etamon",
-			method: "GET"
-		},
-		function(error, response, content) {
-			if(error) {
-				adapter.log.error("** ETA connection issue: "+error);
-			} else {
-				adapter.log.debug("** Checking if global variable is available");
-				if(content.indexOf("<error>") > -1) {
-					// When restarting/updating the ETA unit, the stored variable will get lost
-					request(
-						{
-							url: adapter.config.etaService+"vars/etamon",
-							method: "PUT"
-						},
-						function(error, response, content) {
-							adapter.log.debug("** Created global variable - next: getMenu(true)");
-							getMenu(true);
-						}
-					).catch(
-						function() { 
-						// FIX possible ETA status 400 
-						}
-					)
-				} else {
-					adapter.log.debug("** Global variable is available - next: getMenu(false)");
-					getMenu(false);
-				}
-			}
-		}
-	).catch(
-		function() { 
-			//FIX possible ETA status 404 
-		 }
-	)*/
 
 }
 
 function getMenu(createStructure) {
-	adapter.log.debug("** do: getMenu("+createStructure+")");
-	request(
-		{
-			url: adapter.config.etaService+"menu"
-		},
-		function(error, response, content) {
-			if(!error && response.statusCode == 200) {
-				// Everything is ok - lets parse the XML
-				menu = new xmldom().parseFromString(content);
-			} else {
-				adapter.log.error(error);
-			}
-		}
-	).then(
-		function(content) {
-			if(createStructure) {
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+    		if (this.readyState == 4 && this.status == 200) {
+				//getMenu();
+				adapter.log.debug("**ETA connected and found data");
+				var parser = new DOMParser();
+				menu = parser.parseFromString(xhttp.responseText,"text/xml");
+				adapter.log.debug(menu);
 				adapter.log.debug("** Menu variables read - next: setVariables");
-				setVariables();
-			} else {
-				adapter.log.debug("** Menu variables read - next: getVariables");
-				getVariables();
-				// adapter.stop();
-			}
-		}
-	);
+				
+				var fubs=menu.getElementsByTagName("fub");
+				for(var i = 0; i<1; i++) {
+					var mainNode=fubs[i];
+					adapter.log.debug("** Found fub: "+mainNode);
+				        adapter.setObjectNotExistsAsync(mainNode.getAttribute("name"), 
+					{
+				        	type: 'channel',
+				           	common: {
+				            		name: mainNode.getAttribute("name")
+				        	},
+				        	native: {}
+				        }, function(err) {
+				    		if(err==null) {
+					    		adapter.log.silly("*** Channel created");
+					    			adapter.log.debug("** Found child nodes: "+mainNode.childNodes.length);
+					    			for(var j = 0; j<mainNode.childNodes.length; j++) {
+					    				var childNode=mainNode.childNodes[j];
+					    				adapter.log.debug("** Found child node: "+childNode);
+					    				if(childNode=="")
+					    				{}else{
+					    					adapter.setObjectNotExistsAsync(childNode.getAttribute("name"), 
+											{
+										        	type: 'channel',
+										           	common: {
+										            		name: childNode.getAttribute("name")
+										        	},
+										        	native: {}
+										        }, function(err) {
+										    		if(err==null) {
+											    		adapter.log.silly("*** Channel created");
+											    	} else {
+											    		adapter.log.silly("*** Channel not created (already exists?): "+err);
+											    	}
+										    	}
+											);
+					    				}				
+					    				/*adapter.setObjectNotExistsAsync(childNode.getAttribute("name"), 
+										{
+									        	type: 'channel',
+									           	common: {
+									            		name: childNode.getAttribute("name")
+									        	},
+									        	native: {}
+									        }, function(err) {
+									    		if(err==null) {
+										    		adapter.log.silly("*** Channel created");
+										    	} else {
+										    		adapter.log.silly("*** Channel not created (already exists?): "+err);
+										    	}
+									    	}
+										);*/
+
+
+					    			}
+
+					    	} else {
+					    		adapter.log.silly("*** Channel not created (already exists?): "+err);
+					    	}
+				    	}
+					);
+				}
+   			}else{
+   				adapter.log.error("** ETA connection issue: "+this.status);
+   			}
+	};
+	xhttp.open("GET", adapter.config.etaService+"menu", true);
+	xhttp.send();
 }
 
 function setVariables() {
-	var menuNodes = (select('//eta:*[@uri]', menu));
-	var addedNodes = 0;
+	menuNodes = (select('//eta:*[@uri]', menu));
 	adapter.log.debug("** ETA menu nodes found: "+menuNodes.length);
-	
-	for(var i = 0; i<menuNodes.length; i++) {
-		adapter.log.silly("** Try to add ETA menu node ["+i+"/"+menuNodes.length+"]: "+menuNodes[i].getAttribute("uri"));
-		request(
-			{
-				url: adapter.config.etaService+"vars/etamon" + menuNodes[i].getAttribute("uri"),
-				method: "PUT"
-			},
-			function(error, response, content) {
-				// adapter.log.silly("**** Adding ETA variable - error: "+error);
-				// adapter.log.silly("**** Adding ETA variable - response: "+response);
-				adapter.log.silly("**** Adding ETA variable: "+content);
-			}
-		).then(
-			function() {
-				addedNodes++;
-				addedVariables++;
-				if(addedNodes == menuNodes.length) {
-					adapter.log.debug("** "+addedVariables+" ETA variables added, "+skippedVariables+" variables skipped - next: getVariables");
-					// adapter.stop();
-					getVariables();
-					// continue
-				}
-			}
-		).catch(
-			function() {
-				addedNodes++;
-				skippedVariables++;
-				if(addedNodes == menuNodes.length) {
-					adapter.log.debug("** "+addedVariables+" ETA variables added, "+skippedVariables+" variables skipped - next: getVariables");
-					// adapter.stop();
-					getVariables();
-					// continue
-				}
-			}
-		)
-	}
+	getVariables();
 }
 
 function getVariables() {
 	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-    		if (this.readyState == 4 && this.status == 200) {
+		xhttp.onreadystatechange = function() {
+	    		if (this.readyState == 4 && this.status == 200) {
        			
-			
-				xmlDoc = xhttp.responseXML;
-   			}
-	};
-	xhttp.open("GET", adapter.config.etaService+"vars/etamon", true);
-	xhttp.send();
+					var parser = new DOMParser();
+					variables = parser.parseFromString(xhttp.responseText);
+					setObjects();
+	   			}
+		};
+		xhttp.open("GET", adapter.config.etaService+"vars/etamon", true);
+		xhttp.send();
+	
+	
+	
+	
 }
 
 function setObjects() {
 	//console.log("setObjects 01");
 	
-	var menuNodes = (select('//eta:*[@uri]', menu));
+
 	var addedNodes = 0;
 	var addedVariables = 0;
 	var skippedVariables = 0;
@@ -193,9 +165,9 @@ function setObjects() {
 	//console.log("setObjects 02");
 	
 	
-	for(var i = 0; i<menuNodes.length; i++) {
+	for(var i = 0; i<10; i++) {
 		//console.log("setObjects 03 - "+i);
-		//adapter.log.debug("** Try to add ETA menu node ["+i+"/"+menuNodes.length+"]: "+menuNodes[i].getAttribute("uri"));
+		adapter.log.debug("** Try to add ETA menu node ["+i+"/"+menuNodes.length+"]: "+menuNodes[i] );
 		var parentNodes = (select('ancestor::eta:*[@uri]', menuNodes[i]));
 		var parentPath = "";
 		for(var pkey in parentNodes) {
@@ -274,8 +246,8 @@ function setObjects() {
 		//console.log(varObjects[0]);
 	}
 	//console.log("setObjects 05");
-	adapter.log.debug("** Channels: "+channels.length);
-	adapter.log.debug("** Elements: "+elements.length);
+	//adapter.log.debug("** Channels: "+channels.length);
+	//adapter.log.debug("** Elements: "+elements.length);
 	// adapter.stop();
 	createChannels();
 	
@@ -298,19 +270,22 @@ function setObjects() {
 	adapter.log.debug("** ETA Adapter finished");
 	*/
 	//adapter.stop();
+	
 }
 
 function createChannels() {
-	adapter.log.debug("** Channels to create: "+channels.length);
+	
+	/*adapter.log.debug("** Channels to create: "+channels.length);
 	if(channels.length>0) {	
 		createChannel();
 	} else {
 		adapter.log.debug("** Channels created - next: setObjects");
 		createObjects();
-	}
+	}*/
 }
 
 function createChannel() {
+	
 	adapter.log.silly("*** Creating channel: " + channels[0][0]);
     adapter.setObjectNotExistsAsync(channels[0][0], {
         type: 'channel',
@@ -330,9 +305,11 @@ function createChannel() {
 	    }
     });
 	adapter.log.silly("*** Created channel: " + channels[0][0]);
+	
 }
 
 function createObjects() {
+	
 	adapter.log.debug("** Elements to create: "+elements.length);
 	if(elements.length>0) {	
 		elementsValue.push(elements[0]);
@@ -344,6 +321,7 @@ function createObjects() {
 }
 
 function createObject() {
+	
 	adapter.log.silly("*** Creating element: " + elements[0][0]);
     adapter.setObjectNotExists(elements[0][0], {
         type: 'state',
@@ -366,9 +344,11 @@ function createObject() {
 	    }
     });
 	adapter.log.silly("*** Created element: " + elements[0][0]);
+	
 }
 
 function writeObjects() {
+	
 	adapter.log.debug("** Elements to write: "+elementsValue.length);
 	if(elementsValue.length>0) {	
 		writeObject();
@@ -400,7 +380,7 @@ function writeObject() {
 }
 
 function deleteEta() {
-	adapter.log.debug("** Deleting ETA variabel etamon");
+	/*adapter.log.debug("** Deleting ETA variabel etamon");
 	request(
 		{
 			url: adapter.config.etaService+"vars/etamon",
@@ -425,4 +405,5 @@ function deleteEta() {
 		}
 	);
 	adapter.log.debug("** Deleted ETA variabel etamon");
+	*/
 }

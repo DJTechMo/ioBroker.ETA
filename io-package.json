@@ -21,8 +21,7 @@
             "Mario Anstoots <mario1991@web.de>"
         ],
         "platform": "Javascript/Node.js",
-        "mode": "schedule",
-        "schedule": "* * * * *",
+        "mode": "daemon",
         "icon": "etamon.png",
         "materialize": true,
         "enabled": true,
